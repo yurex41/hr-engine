@@ -1,0 +1,31 @@
+# VPS deployment: HR Engine + Caddy (automatic HTTPS).
+# Usage:  cp .env.example .env   # fill in secrets
+#         docker compose up -d --build
+services:
+  hr-engine:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATA_DIR=/data
+    volumes:
+      - ./data:/data
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - hr-engine
+
+volumes:
+  caddy_data:
+  caddy_config:

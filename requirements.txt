@@ -1,0 +1,9 @@
+anthropic
+google-auth-oauthlib
+google-api-python-client
+playwright==1.52.0
+python-docx
+pyyaml
+beautifulsoup4
+flask>=3.0
+gunicorn>=21.2

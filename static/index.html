@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HR Engine</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #181b24; --border: #2a2f3d; --text: #e2e6ef;
+    --muted: #8b93a7; --accent: #4f8cff; --green: #3fb950; --red: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 16px; padding: 14px 24px;
+           border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 18px; margin: 0; }
+  .badge { font-size: 12px; padding: 2px 10px; border-radius: 999px;
+           border: 1px solid var(--border); color: var(--muted); }
+  .badge.ok { color: var(--green); border-color: var(--green); }
+  .badge.bad { color: var(--red); border-color: var(--red); }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; gap: 20px; }
+  section { background: var(--panel); border: 1px solid var(--border);
+            border-radius: 10px; padding: 18px; }
+  section h2 { margin: 0 0 12px; font-size: 14px; text-transform: uppercase;
+               letter-spacing: .08em; color: var(--muted); }
+  button { background: var(--accent); border: 0; color: #fff; padding: 9px 16px;
+           border-radius: 7px; font-size: 14px; cursor: pointer; }
+  button:hover { filter: brightness(1.15); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  button.danger { background: var(--red); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  #log { background: #0a0c10; border: 1px solid var(--border); border-radius: 7px;
+         padding: 12px; height: 360px; overflow-y: auto; white-space: pre-wrap;
+         font: 12.5px/1.6 ui-monospace, "SF Mono", Menlo, monospace; color: #c5ccda; }
+  textarea { width: 100%; height: 320px; background: #0a0c10; color: #c5ccda;
+             border: 1px solid var(--border); border-radius: 7px; padding: 12px;
+             font: 12.5px/1.6 ui-monospace, Menlo, monospace; resize: vertical; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  a { color: var(--accent); text-decoration: none; }
+  iframe { width: 100%; height: 600px; border: 1px solid var(--border);
+           border-radius: 7px; background: #fff; }
+  .msg { font-size: 13px; color: var(--muted); min-height: 1.2em; }
+  .msg.err { color: var(--red); }
+  .msg.ok { color: var(--green); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚙️ HR Engine</h1>
+  <span id="user-badge" class="badge">…</span>
+  <span id="run-badge" class="badge">idle</span>
+  <span id="google-badge" class="badge">google: …</span>
+  <span id="key-badge" class="badge">api key: …</span>
+</header>
+
+<main>
+  <section>
+    <h2>Pipeline</h2>
+    <div class="row">
+      <button onclick="run('all')">▶ Run All</button>
+      <button class="secondary" onclick="run('filter')">From Filter</button>
+      <button class="secondary" onclick="run('generate')">From Generate</button>
+      <button class="secondary" onclick="run('track')">From Track</button>
+      <button class="danger" id="stop-btn" onclick="stopRun()" disabled>■ Stop</button>
+      <span style="flex:1"></span>
+      <button class="secondary" onclick="connectGoogle()">🔑 Connect Google</button>
+    </div>
+    <p class="msg" id="run-msg"></p>
+    <div id="log">Waiting for output…\n</div>
+  </section>
+
+  <section>
+    <h2>Job Tracker</h2>
+    <div class="row" style="margin-bottom:10px">
+      <button class="secondary" onclick="reloadTracker()">↻ Refresh</button>
+      <a href="/tracker" target="_blank">Open in new tab ↗</a>
+    </div>
+    <iframe id="tracker-frame" src="/tracker"></iframe>
+  </section>
+
+  <section>
+    <h2>Generated Files</h2>
+    <div class="row" style="margin-bottom:10px">
+      <button class="secondary" onclick="loadFiles()">↻ Refresh</button>
+    </div>
+    <table>
+      <thead><tr><th>Type</th><th>File</th><th>Size</th><th>Modified</th><th></th></tr></thead>
+      <tbody id="files-body"><tr><td colspan="5" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>CV &amp; Cover Letter Templates</h2>
+    <p class="msg">The pipeline fills these .docx templates with content tailored to each job.
+       Upload your own CV and cover letter templates to replace the defaults.</p>
+    <table>
+      <thead><tr><th>Template</th><th>File</th><th>Size</th><th>Updated</th></tr></thead>
+      <tbody id="tpl-body"><tr><td colspan="4" style="color:var(--muted)">Loading…</td></tr></tbody>
+    </table>
+    <div class="row" style="margin-top:12px">
+      <select id="tpl-kind" style="background:#0a0c10;color:var(--text);border:1px solid var(--border);border-radius:7px;padding:8px">
+        <option value="cv">CV template</option>
+        <option value="cl">Cover letter template</option>
+      </select>
+      <input type="file" id="tpl-file" accept=".docx" style="color:var(--muted)">
+      <button onclick="uploadTemplate()">⬆ Upload</button>
+      <span class="msg" id="tpl-msg"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>preferences.yaml</h2>
+    <textarea id="prefs" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button onclick="savePrefs()">💾 Save</button>
+      <button class="secondary" onclick="loadPrefs()">↻ Reload</button>
+      <span class="msg" id="prefs-msg"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(1)+' MB' : Math.max(1, Math.round(b/1024))+' KB';
+let lastSeq = 0, es = null;
+
+// ── Live logs (SSE, auto-reconnect resuming from last seen line) ──────────
+function connectLogs() {
+  if (es) es.close();
+  es = new EventSource('/api/logs/stream?after=' + lastSeq);
+  es.onmessage = e => {
+    lastSeq = parseInt(e.lastEventId) || lastSeq;
+    const log = $('log');
+    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    log.textContent += JSON.parse(e.data) + '\n';
+    if (atBottom) log.scrollTop = log.scrollHeight;
+  };
+  es.onerror = () => { es.close(); setTimeout(connectLogs, 3000); };
+}
+
+// ── Pipeline control ───────────────────────────────────────────────────────
+async function run(stage) {
+  $('run-msg').className = 'msg';
+  $('run-msg').textContent = '';
+  const r = await fetch('/api/run', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({stage})
+  });
+  const data = await r.json();
+  if (!r.ok) { $('run-msg').className = 'msg err'; $('run-msg').textContent = data.error; }
+  refreshStatus();
+}
+
+async function stopRun() {
+  await fetch('/api/stop', {method: 'POST'});
+  refreshStatus();
+}
+
+async function refreshStatus() {
+  try {
+    const s = await (await fetch('/api/status')).json();
+    $('user-badge').textContent = '👤 ' + s.user;
+    const badge = $('run-badge');
+    if (s.running) {
+      badge.textContent = `running: ${s.stage}`;
+      badge.className = 'badge ok';
+    } else if (s.busy_user) {
+      badge.textContent = `busy: ${s.busy_user} is running`;
+      badge.className = 'badge';
+    } else {
+      badge.textContent = 'idle';
+      badge.className = 'badge';
+    }
+    $('stop-btn').disabled = !s.running;
+    $('google-badge').textContent = 'google: ' + (s.google_connected ? 'connected' : 'not connected');
+    $('google-badge').className = 'badge ' + (s.google_connected ? 'ok' : 'bad');
+    $('key-badge').textContent = 'api key: ' + (s.anthropic_key_set ? 'set' : 'missing');
+    $('key-badge').className = 'badge ' + (s.anthropic_key_set ? 'ok' : 'bad');
+  } catch (e) { /* server briefly unreachable */ }
+}
+
+function connectGoogle() { window.location = '/auth/google'; }
+
+// ── Tracker & files ────────────────────────────────────────────────────────
+function reloadTracker() { $('tracker-frame').src = '/tracker?t=' + Date.now(); }
+
+async function loadFiles() {
+  const files = await (await fetch('/api/files')).json();
+  const body = $('files-body');
+  if (!files.length) {
+    body.innerHTML = '<tr><td colspan="5" style="color:var(--muted)">No generated files yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = files.map(f => `<tr>
+    <td>${f.kind === 'cv' ? '📄 CV' : '✉️ Cover letter'}</td>
+    <td>${f.name}</td><td>${fmtSize(f.size)}</td><td>${f.mtime}</td>
+    <td><a href="${f.url}">Download</a></td></tr>`).join('');
+}
+
+// ── Templates ──────────────────────────────────────────────────────────────
+async function loadTemplates() {
+  const tpls = await (await fetch('/api/templates')).json();
+  const body = $('tpl-body');
+  const label = k => k === 'cv' ? '📄 CV' : '✉️ Cover letter';
+  if (!tpls.length) {
+    body.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">No templates yet — upload below.</td></tr>';
+    return;
+  }
+  body.innerHTML = tpls.map(t => `<tr>
+    <td>${label(t.kind)}</td><td>${t.name}</td><td>${fmtSize(t.size)}</td><td>${t.mtime}</td></tr>`).join('');
+}
+
+async function uploadTemplate() {
+  const file = $('tpl-file').files[0];
+  const m = $('tpl-msg');
+  if (!file) { m.className = 'msg err'; m.textContent = 'Choose a .docx file first.'; return; }
+  const fd = new FormData();
+  fd.append('kind', $('tpl-kind').value);
+  fd.append('file', file);
+  const r = await fetch('/api/templates', {method: 'POST', body: fd});
+  const d = await r.json();
+  m.className = r.ok ? 'msg ok' : 'msg err';
+  m.textContent = r.ok ? `Saved as ${d.name} ✓` : d.error;
+  if (r.ok) { $('tpl-file').value = ''; loadTemplates(); }
+}
+
+// ── Preferences editor ─────────────────────────────────────────────────────
+async function loadPrefs() {
+  const d = await (await fetch('/api/preferences')).json();
+  $('prefs').value = d.content;
+  $('prefs-msg').textContent = '';
+}
+
+async function savePrefs() {
+  const r = await fetch('/api/preferences', {
+    method: 'PUT', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content: $('prefs').value})
+  });
+  const d = await r.json();
+  const m = $('prefs-msg');
+  m.className = r.ok ? 'msg ok' : 'msg err';
+  m.textContent = r.ok ? 'Saved ✓ (previous version kept as preferences.yaml.bak)' : d.error;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+connectLogs();
+refreshStatus();
+loadPrefs();
+loadFiles();
+loadTemplates();
+setInterval(refreshStatus, 3000);
+setInterval(loadFiles, 15000);
+if (new URLSearchParams(location.search).get('google') === 'connected') {
+  $('run-msg').className = 'msg ok';
+  $('run-msg').textContent = 'Google account connected ✓';
+  history.replaceState(null, '', '/');
+}
+</script>
+</body>
+</html>

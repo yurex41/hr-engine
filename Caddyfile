@@ -1,0 +1,8 @@
+# Replace with your domain (DNS A record must point at the VPS).
+# Caddy obtains and renews the Let's Encrypt certificate automatically.
+hr.example.com {
+	reverse_proxy hr-engine:8000 {
+		# Don't buffer Server-Sent Events
+		flush_interval -1
+	}
+}

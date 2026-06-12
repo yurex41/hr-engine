@@ -1,0 +1,20 @@
+# Never bake personal data or secrets into the image.
+token.json
+credentials.json
+preferences.yaml
+users/
+jobs_detailed.json
+jobs_matched.json
+jobs_rejected.json
+job_tracker.json
+tracker.html
+hr_engine.log
+cv_output/
+cl_output/
+data/
+.env
+.git/
+.DS_Store
+__pycache__/
+*.pyc
+preferences.yaml.bak

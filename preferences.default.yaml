@@ -1,0 +1,33 @@
+# HR Engine preferences — edit this with YOUR profile before running the pipeline.
+
+your_profile: |
+  REPLACE ME: 2-4 sentences about your background, experience and strengths.
+  Example: "Backend engineer with 5 years of experience in Python and Go,
+  focused on distributed systems. Led a team of 4 at a fintech startup."
+
+target_roles:
+  - REPLACE ME (e.g. Software Engineer)
+  - REPLACE ME (e.g. Backend Developer)
+
+seniority:
+  - Senior
+  - Manager
+
+locations:
+  preferred:
+    - Remote
+    - REPLACE ME (your city)
+  excluded:
+    - "relocation required"
+
+dealbreaker_keywords:
+  - "security clearance"
+  - "commission only"
+
+minimum_score: 45           # Jobs scoring below this (0-100) are rejected
+
+industries_preferred:
+  - Technology
+
+industries_excluded:
+  - Gambling

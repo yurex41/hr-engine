@@ -1,0 +1,23 @@
+# Secrets & personal data — never commit
+token.json
+credentials.json
+.env
+preferences.yaml
+users/
+
+# Pipeline state & generated output
+jobs_detailed.json
+jobs_matched.json
+jobs_rejected.json
+job_tracker.json
+tracker.html
+hr_engine.log
+cv_output/
+cl_output/
+data/
+preferences.yaml.bak
+
+# Misc
+__pycache__/
+*.pyc
+.DS_Store
